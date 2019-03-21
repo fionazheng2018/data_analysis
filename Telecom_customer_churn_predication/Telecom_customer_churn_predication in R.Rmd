@@ -1,0 +1,162 @@
+---
+title: "Telecom_customer_churn_predication"
+author: "Yiwen Zheng"
+date: "3/10/2019"
+output: html_document
+---
+```{r cars}
+
+library(data.table)
+library(mfx)
+library(glmnet)
+library(ranger)
+library(pROC)
+#install.packages('randomForest')
+library(randomForest)
+```
+
+```{r pressure, echo=FALSE}
+
+setwd("~/Desktop/MSBA 2018FALL/Quarter 2/Marketing Analytics/Final Project")
+rm(list=ls()) 
+```
+
+```{r pressure, echo=FALSE}
+df=fread("clean_data.csv") # import clean_data(data cleaned in python)
+df=df[,V1:=NULL]
+```
+
+```{r pressure, echo=FALSE}
+set.seed(1999)
+df[, training_sample := rbinom(nrow(df), 1, 0.7)] #set up training and testing sample
+df_train=df[training_sample==1]
+df_test=df[training_sample==0]
+df_train=df_train[,training_sample:=NULL]
+df_test=df_test[,training_sample:=NULL]
+df_test_y=df_test[,Churn]
+df_test_x=df_test[,Churn :=NULL]
+
+```
+### Logistic Regression
+```{r pressure, echo=FALSE}
+logit=glm(Churn ~ ., data=df_train, family="binomial" )
+
+logit_prob_pred=predict(logit,type='response',df_test_x)
+
+par(pty='s')
+roc(df_test_y,logit_prob_pred,plot=TRUE,legacy.axes=TRUE,percent=TRUE,xlab='False Positive Percentage',ylab='True Positive Percentage',col='#3773b8',lwd=4,print.auc=TRUE)
+
+#roc curve details
+
+roc.info<-roc(df_test_y,logit_prob_pred,legacy.axes=TRUE)
+roc.df<-data.frame(tpp=roc.info$sensitivities*100,fpp=(1-roc.info$specificities)*100,thresholds=roc.info$thresholds)
+
+#View(roc.df)
+summary(logit)
+```
+
+
+### Logistic Regression + Lasso
+```{r pressure, echo=FALSE}
+
+x = model.matrix(Churn ~ . - 1,
+                 data = df_train)
+
+
+y = df_train[,Churn]
+
+fit.lasso = glmnet(x, y)
+plot(fit.lasso, xvar = "lambda", label = TRUE)
+
+plot(fit.lasso, xvar = "dev", label = TRUE) # percentage of sum of squares explained
+cv.lasso = cv.glmnet(x, y,alpha = 1.0)
+
+
+plot(cv.lasso)
+
+coef(cv.lasso)
+
+coef(cv.lasso, s = "lambda.min")
+coef(cv.lasso, s = "lambda.1se")
+cv.lasso$lambda.min
+cv.lasso$lambda.1se
+
+print(cv.lasso)
+
+df_test=df[training_sample==0]
+df_test=df_test[,training_sample:=NULL]
+
+#test the model in testing data by choosing lambda.1se
+x_new = model.matrix(Churn ~.-1, data = df_test)
+
+lasso_pred_prob=predict(cv.lasso, newx = x_new, s = "lambda.1se")
+
+lasso_pred_prob=as.vector(lasso_pred_prob)
+par(pty='s')
+roc(df_test_y,logit_prob_pred,plot=TRUE,legacy.axes=TRUE,percent=TRUE,xlab='False Positive Percentage',ylab='True Positive Percentage',col='#3773b8',lwd=4,print.auc=TRUE)
+plot.roc(df_test_y,lasso_pred_prob,percent=TRUE,col='#4daf4a',lwd=4,print.auc=TRUE,add=TRUE,print.auc.y=40)
+legend("bottomright",legend=c("Logistic Regression","Logistic+Lasso"),col=c("#377eb8","#4daf4a"),lwd=4)
+
+#compared with Logistic Regression, by regulating with Lasso, AUC score slightly decreased
+```
+### Random Forest
+```{r pressure, echo=FALSE}
+df_train$Churn <- as.factor(df_train$Churn)
+df_train_y=df_train$Churn
+rf=randomForest(Churn ~ .,data=df_train,probability=T)
+
+
+df_test=df[training_sample==0]
+df_test=df_test[,training_sample:=NULL]
+
+
+pred_rf <- predict(rf, df_test, type = "prob")[,2] #probability of 1
+
+auc(df_test_y,pred_rf)
+
+
+# test the best Number of variables randomly sampled as candidates at each split in terms of auc score
+oob_auc=double(25)
+test_auc=double(25)
+
+for(mtry in 1:25){
+  fit=randomForest(Churn~.,data=df_train,mtry=mtry,ntree=1000,probability=T,nodesize =35)
+  
+  pred_rf_train <- predict(fit, df_train, type = "prob")[,2]
+  oob_auc[mtry]=auc(df_train_y,pred_rf_train)
+  
+  pred_rf_test <- predict(fit, df_test, type = "prob")[,2]
+  #pred_rf_test=as.numeric(pred_rf)
+  test_auc[mtry]=auc(df_test_y,pred_rf_test)
+  cat(mtry," ")
+}
+
+
+grid(nx = NULL, ny = NULL, col = "lightgray", lty = "dotted")
+matplot(1:mtry,cbind(test_auc,oob_auc),pch=19,col=c("red","blue"),type="b",ylab="Auc Score")
+legend("topright",legend=c("Test","OBB"),pch=19,col=c("red","blue"))
+
+# traing_auc increase gradually to 1 when the mtry increases, which indicating overfitting thus, the testing acu starts decreasing as long as mtry increases.
+#no huge difference by choosing different mtry, but highest acu socre when mtry =6
+
+rf_best=randomForest(Churn~.,data=df_train,mtry=6,ntree=1000,probability=T,nodesize =35)
+
+
+rf_best=randomForest(Churn~.,data=df_train,mtry=6,ntree=1000,probability=T,nodesize =35)
+
+
+
+
+pred_rf_best <- predict(rf_best, df_test, type = "prob")[,2]
+
+
+par(pty='s')
+roc(df_test_y,logit_prob_pred,plot=TRUE,legacy.axes=TRUE,percent=TRUE,xlab='False Positive Percentage',ylab='True Positive Percentage',col='#3773b8',lwd=4,print.auc=TRUE)
+plot.roc(df_test_y,lasso_pred_prob,percent=TRUE,col='#4daf4a',lwd=4,print.auc=TRUE,add=TRUE,print.auc.y=40)
+plot.roc(df_test_y,pred_rf_best,percent=TRUE,col='coral1',lwd=4,print.auc=TRUE,add=TRUE,print.auc.y=60)
+legend("bottomright",legend=c("Logistic Regression","Logistic+Lasso",'Random Forest'),col=c("#377eb8","#4daf4a",'coral1'),lwd=4)
+
+#Three models are similar in performace, almost same roc_acu scores.
+
+```
+
