@@ -17,7 +17,6 @@ library(randomForest)
 
 ```{r pressure, echo=FALSE}
 
-setwd("~/Desktop/MSBA 2018FALL/Quarter 2/Marketing Analytics/Final Project")
 rm(list=ls()) 
 ```
 
