@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
     Populating the interactive namespace from numpy and matplotlib
 
 
-### This project is to predicate countries’ medal rate by consolidating historical events data over 120 years and countries’ economic and demographic data
+### This project is to predict countries’ medal rate by consolidating historical events data over 120 years and countries’ economic and demographic data
 
  Import and clean GDP data（  http://www.ggdc.net/maddison/historical_statistics/horizontal-file_02-2010.xls     ）
 

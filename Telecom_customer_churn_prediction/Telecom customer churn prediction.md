@@ -1,5 +1,5 @@
 
-### Telecom customer churn predication
+### Telecom customer churn prediction
 
 
 ```python
@@ -889,7 +889,7 @@ plt.show()
 ![png](output_68_0.png)
 
 
-Summary: Random Forest, Logistic Regression and Logistic + Lasso are all similar in terms of roc auc scores, when recall is less than 22%, random forest has a much higher precision compared with the other two models. Based on the current model, from which we are unable to get high precision when aiming high recall in Churn prediction, for instance, when aiming 80% recall, our precision is only 50%, if we offer discount to the predicated churn cusotmers, we will still lose 20% of the customers(the 20% our model failed to caputre), moreover, 50% of marketing budget will be wasted because 50% precision means 50% of the churn customers in our prediciton will stay instead of leaving the company, so half of the discount offers are unneccessary. 
+Summary: Random Forest, Logistic Regression and Logistic + Lasso are all similar in terms of roc auc scores, when recall is less than 22%, random forest has a much higher precision compared with the other two models. Based on the current model, from which we are unable to get high precision when aiming high recall in Churn prediction, for instance, when aiming 80% recall, our precision is only 50%, if we offer discount to the predicted churn cusotmers, we will still lose 20% of the customers(the 20% our model failed to caputre), moreover, 50% of marketing budget will be wasted because 50% precision means 50% of the churn customers in our prediciton will stay instead of leaving the company, so half of the discount offers are unneccessary. 
 
 
-Based on current model, company should keep the precision and reall trade-off in mind before implementing any actions on churned customers.Without better model (higher precision and higher recall) model, company can aim at low recall(less than 20%) to retain a small portion of customers to keep profit.
+Based on current model, company should keep the precision and reall trade-off in mind before implementing any actions on churned customers.Without better model (higher precision and higher recall) model, company can aim at low recall(less than 20%) to retain a small portion of customers to keep maximum profit.
